@@ -93,10 +93,11 @@ local model only on selected pages. Use `--source-page 29 --force` to debug one 
 `TOSEC_INDEX_EXTRACTION_STRATEGY` selects `text` or `vision`; vision supplies both the original
 page and OCR evidence to a compatible llama.cpp model/projector.
 
-By default only `reviews` and `previews` are accepted from listing pages. This conservative
-boundary avoids unstable guesses from news blurbs, advertisements, captions, and hardware
-features. Set `TOSEC_INDEX_SECTIONS` explicitly if broader sections are wanted later; the setting
-is included in extraction provenance, so changing it creates a distinct result version.
+By default, named game subjects in `reviews`, `previews`, `features`, `guides`, and `news` are
+accepted from discovered contents and listing pages. Advertisements, captions, generic hardware,
+and passing comparisons remain excluded by the extraction prompt and discovery filters. Override
+`TOSEC_INDEX_SECTIONS` for a narrower collection; the setting is included in extraction
+provenance, so changing it creates a distinct result version.
 
 For debugging, select one imported document by numeric ID, exact filename, or original
 path. A rerun creates new versioned results rather than overwriting old provenance:

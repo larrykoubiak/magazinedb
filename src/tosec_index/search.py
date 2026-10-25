@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import case, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from .models import (
     Document,
     Entity,
     ExtractionRun,
+    IndexDiscoveryRun,
     IndexEntry,
     IndexPageCandidate,
     IndexPageExtractionRun,
@@ -44,6 +45,23 @@ def search(
     session: Session, term: str, limit: int = 50, include_ocr: bool = False
 ) -> list[SearchHit]:
     pattern = f"%{term}%"
+    latest_discovery_ids = (
+        select(func.max(IndexDiscoveryRun.id))
+        .where(IndexDiscoveryRun.status == "success")
+        .group_by(IndexDiscoveryRun.document_id)
+    )
+    current_candidate_ids = select(IndexPageCandidate.id).where(
+        IndexPageCandidate.discovery_run_id.in_(latest_discovery_ids),
+        IndexPageCandidate.selected.is_(True),
+    )
+    latest_extraction_ids = (
+        select(func.max(IndexPageExtractionRun.id))
+        .where(
+            IndexPageExtractionRun.status == "success",
+            IndexPageExtractionRun.candidate_id.in_(current_candidate_ids),
+        )
+        .group_by(IndexPageExtractionRun.candidate_id)
+    )
     index_rows = session.execute(
         select(Document, Page, IndexEntry)
         .join(IndexPageCandidate, IndexPageCandidate.page_id == Page.id)
@@ -54,7 +72,7 @@ def search(
         .join(IndexEntry, IndexEntry.extraction_run_id == IndexPageExtractionRun.id)
         .join(Document, Document.id == Page.document_id)
         .where(
-            IndexPageExtractionRun.status == "success",
+            IndexPageExtractionRun.id.in_(latest_extraction_ids),
             IndexEntry.title.ilike(pattern),
         )
         .order_by(

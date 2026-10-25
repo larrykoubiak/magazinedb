@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..models import Document, IndexDiscoveryRun, IndexPageCandidate, OCRResult, Page
 from .layout import layout_lines, probable_page_reference_rows
 
-DETECTOR_VERSION = "keywords-layout-v4"
+DETECTOR_VERSION = "keywords-layout-v5"
 
 KEYWORDS = {
     "contents": ("contents", "sommaire", "sumario", "indice", "inhalt", "inhaltsverzeichnis"),
@@ -148,6 +148,8 @@ def discover_index_pages(
                 section_targets[int(match.group(2))] = label
     seen.clear()
     selected = 0
+    previous_page_number: int | None = None
+    previous_was_selected_contents = False
     for page, ocr in latest_rows:
         seen.add(page.id)
         score, classification, reasons = _score(page, ocr, document.page_count)
@@ -155,6 +157,16 @@ def discover_index_pages(
             classification = section_targets[page.page_number]
             reasons.append("section linked from a contents page")
         is_selected = score >= threshold
+        if (
+            not is_selected
+            and previous_was_selected_contents
+            and previous_page_number is not None
+            and page.page_number == previous_page_number + 1
+            and score >= threshold - 1.0
+        ):
+            is_selected = True
+            classification = "contents"
+            reasons.append("continuation of preceding contents page")
         selected += int(is_selected)
         session.add(
             IndexPageCandidate(
@@ -166,6 +178,8 @@ def discover_index_pages(
                 reasons=reasons,
             )
         )
+        previous_page_number = page.page_number
+        previous_was_selected_contents = is_selected and classification == "contents"
     duration = time.perf_counter() - started
     run.status = "success"
     run.duration_seconds = duration

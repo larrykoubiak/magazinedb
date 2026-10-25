@@ -183,7 +183,7 @@ def test_index_discovery_prefers_contents_and_dense_page_lists(tmp_path: Path) -
         pages = []
         texts = (
             "CONTENTS Reviews",
-            "A review of one game",
+            "Reviews",
             "Games",
             "letters\nI have been pleased with its contents and reviews",
             "PLAYER'S POLL\nOf the game reviews below, which two did you enjoy the most?",
@@ -200,8 +200,9 @@ def test_index_discovery_prefers_contents_and_dense_page_lists(tmp_path: Path) -
             session.add(page)
             session.flush()
             boxes = []
-            if number in (1, 3, 4, 5):
-                for row in range(12 if number in (3, 4, 5) else 5):
+            if number in (1, 2, 3, 4, 5):
+                row_count = 3 if number == 2 else 12 if number in (3, 4, 5) else 5
+                for row in range(row_count):
                     boxes.extend(
                         [
                             {"text": f"Game{row}", "x": 200, "y": 100 + row * 30, "width": 90, "height": 20},
@@ -230,8 +231,10 @@ def test_index_discovery_prefers_contents_and_dense_page_lists(tmp_path: Path) -
             )
         )
 
-    assert summary.selected == 2
-    assert [candidate.selected for candidate in candidates] == [True, False, True, False, False]
+    assert summary.selected == 3
+    assert [candidate.selected for candidate in candidates] == [True, True, True, False, False]
     assert candidates[0].classification == "contents"
+    assert candidates[1].classification == "contents"
+    assert "continuation of preceding contents page" in candidates[1].reasons
     assert candidates[2].classification == "game_listing"
     assert "reader poll penalty: player's poll" in candidates[4].reasons

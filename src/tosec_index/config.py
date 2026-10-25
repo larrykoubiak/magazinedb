@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     index_candidate_reocr_psm: int = 4
     index_llm_max_output_tokens: int = 3072
     index_extraction_strategy: str = "text"
+    index_sections: list[str] = Field(default_factory=lambda: ["reviews", "previews"])
 
     def ensure_cache_dirs(self) -> None:
         (self.cache_dir / "pages").mkdir(parents=True, exist_ok=True)

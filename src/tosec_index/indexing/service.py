@@ -31,6 +31,8 @@ from .extractors import InvalidIndexResponse, make_extractor
 from .layout import layout_lines
 from .schemas import IndexPageExtraction
 
+POSTPROCESS_VERSION = "section-filter-v1"
+
 
 @dataclass(slots=True)
 class IndexExtractionSummary:
@@ -56,7 +58,14 @@ HARDWARE_ONLY_NAMES = {
 
 def _prompt(settings: Settings) -> tuple[str, str]:
     prompt = settings.index_prompt_path.read_text(encoding="utf-8")
-    fingerprint = prompt + json.dumps(IndexPageExtraction.model_json_schema(), sort_keys=True)
+    fingerprint = "\n".join(
+        (
+            prompt,
+            json.dumps(IndexPageExtraction.model_json_schema(), sort_keys=True),
+            POSTPROCESS_VERSION,
+            json.dumps(sorted(settings.index_sections)),
+        )
+    )
     return prompt, hashlib.sha256(fingerprint.encode()).hexdigest()[:16]
 
 
@@ -270,6 +279,8 @@ def extract_indexes(
                         output_section = "reviews"
                     elif output_section == "other" and candidate.classification == "preview_index":
                         output_section = "previews"
+                    if output_section not in settings.index_sections:
+                        continue
                     key = (normalize_title(title), printed_page, output_section)
                     if not title or key in seen:
                         continue

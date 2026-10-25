@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..models import Document, IndexDiscoveryRun, IndexPageCandidate, OCRResult, Page
 from .layout import layout_lines, probable_page_reference_rows
 
-DETECTOR_VERSION = "keywords-layout-v3"
+DETECTOR_VERSION = "keywords-layout-v4"
 
 KEYWORDS = {
     "contents": ("contents", "sommaire", "sumario", "indice", "inhalt", "inhaltsverzeichnis"),
@@ -21,6 +21,7 @@ KEYWORDS = {
     "game_listing": ("game index", "games index", "game guide", "games guide", "jeux", "spiele"),
 }
 AD_MARKERS = ("order now", "credit card", "telephone", "call now", "dealer", "mail order")
+POLL_MARKERS = ("player's poll", "players poll", "reader poll", "survey", "questionnaire")
 
 
 @dataclass(slots=True)
@@ -97,6 +98,10 @@ def _score(page: Page, ocr: OCRResult, document_pages: int) -> tuple[float, str,
     if ad_hits:
         score -= 3.0
         reasons.append("advertising penalty: " + ", ".join(ad_hits))
+    poll_hits = [marker for marker in POLL_MARKERS if marker in text]
+    if poll_hits:
+        score -= 4.0
+        reasons.append("reader poll penalty: " + ", ".join(poll_hits))
     first_line = next((line.strip() for line in text.splitlines() if line.strip()), "")
     if first_line in {"letters", "mailbag", "readers letters"}:
         score -= 5.0

@@ -175,7 +175,7 @@ def test_index_discovery_prefers_contents_and_dense_page_lists(tmp_path: Path) -
             original_path=str(tmp_path / "issue.cbz"),
             filename="issue.cbz",
             source_type="cbz",
-            page_count=4,
+            page_count=5,
             parsed_metadata={},
         )
         session.add(document)
@@ -186,6 +186,7 @@ def test_index_discovery_prefers_contents_and_dense_page_lists(tmp_path: Path) -
             "A review of one game",
             "Games",
             "letters\nI have been pleased with its contents and reviews",
+            "PLAYER'S POLL\nOf the game reviews below, which two did you enjoy the most?",
         )
         for number, text in enumerate(texts, 1):
             page = Page(
@@ -199,8 +200,8 @@ def test_index_discovery_prefers_contents_and_dense_page_lists(tmp_path: Path) -
             session.add(page)
             session.flush()
             boxes = []
-            if number in (1, 3, 4):
-                for row in range(12 if number in (3, 4) else 5):
+            if number in (1, 3, 4, 5):
+                for row in range(12 if number in (3, 4, 5) else 5):
                     boxes.extend(
                         [
                             {"text": f"Game{row}", "x": 200, "y": 100 + row * 30, "width": 90, "height": 20},
@@ -230,6 +231,7 @@ def test_index_discovery_prefers_contents_and_dense_page_lists(tmp_path: Path) -
         )
 
     assert summary.selected == 2
-    assert [candidate.selected for candidate in candidates] == [True, False, True, False]
+    assert [candidate.selected for candidate in candidates] == [True, False, True, False, False]
     assert candidates[0].classification == "contents"
     assert candidates[2].classification == "game_listing"
+    assert "reader poll penalty: player's poll" in candidates[4].reasons

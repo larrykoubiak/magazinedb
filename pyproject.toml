@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tosec-index"
+version = "0.1.0"
+description = "Local, provenance-first indexer for scanned TOSEC-PIX publications"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic>=1.13,<2",
+  "httpx>=0.27,<1",
+  "pillow>=10.4,<12",
+  "psycopg[binary]>=3.2,<4",
+  "pydantic>=2.8,<3",
+  "pydantic-settings>=2.4,<3",
+  "pymupdf>=1.24,<2",
+  "pytesseract>=0.3.13,<1",
+  "sqlalchemy>=2.0,<3",
+  "typer>=0.12,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<9", "ruff>=0.6,<1"]
+
+[project.scripts]
+tosec-index = "tosec_index.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tosec_index"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
